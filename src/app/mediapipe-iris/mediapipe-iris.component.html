@@ -1,2 +1,21 @@
-<p>mediapipe-iris works!</p>
-Hello world
+<!-- Camera -->
+<h1>Upload using camera</h1>
+<!-- Dropdown to choose a camera -->
+<select [(ngModel)]="selectedCameraId">
+  <option *ngFor="let camera of cameras" [value]="camera.deviceId">
+    {{ camera.label || "Camera " + (cameras.indexOf(camera) + 1) }}
+  </option>
+</select>
+
+<!-- Buttons for camera control and photo capture -->
+<div>
+  <button class="button-6" (click)="startCamera()">Start Camera</button>
+  <button class="button-6" (click)="stopCamera()" [disabled]="!cameraActive">
+    Stop Camera
+  </button>
+</div>
+
+<div class="mediapipe-iris-container">
+  <video #videoElement autoplay></video>
+  <canvas #canvasElement></canvas>
+</div>

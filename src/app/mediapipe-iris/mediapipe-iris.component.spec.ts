@@ -8,9 +8,8 @@ describe('MediapipeIrisComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MediapipeIrisComponent]
-    })
-    .compileComponents();
+      imports: [MediapipeIrisComponent],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(MediapipeIrisComponent);
     component = fixture.componentInstance;

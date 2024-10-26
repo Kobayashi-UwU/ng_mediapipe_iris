@@ -8,11 +8,11 @@ import { MediapipeIrisComponent } from './mediapipe-iris/mediapipe-iris.componen
 @NgModule({
   declarations: [
     AppComponent, // Main application component
+    MediapipeIrisComponent,
   ],
   imports: [
     BrowserModule, // Basic browser module for the app to run in browsers
     FormsModule,
-    MediapipeIrisComponent, // Mediapipe-based iris recognition component
   ],
   providers: [],
   bootstrap: [AppComponent], // Specifies the root component to bootstrap
