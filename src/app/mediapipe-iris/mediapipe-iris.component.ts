@@ -110,37 +110,59 @@ export class MediapipeIrisComponent implements AfterViewInit {
   private onResults(results: any): void {
     const canvas = this.canvasElement.nativeElement;
     const video = this.videoElement.nativeElement;
-  
+
     const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-    
+
     // Set canvas size to match video element's display size
     canvas.width = video.clientWidth;
     canvas.height = video.clientHeight;
-  
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+
+    let irisDetected = false;
+
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       const landmarks = results.multiFaceLandmarks[0];
-  
-      // Draw eyelid in red
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 3;
-      drawConnectors(ctx, landmarks, FACEMESH_LEFT_EYE, { color: 'red' });
-      drawConnectors(ctx, landmarks, FACEMESH_RIGHT_EYE, { color: 'red' });
-  
-      // Draw outer and inner iris circles
-      ctx.strokeStyle = 'green';
-      ctx.lineWidth = 3;
-      this.drawIris(ctx, landmarks, [468, 469, 470, 471], 'green'); // Outer iris
-      this.drawIris(ctx, landmarks, [473, 474, 475, 476], 'blue');  // Inner iris
+
+      // Calculate the distance between the eyelid and iris landmarks
+      const eyelidDistance = this.calculateEyelidDistance(landmarks);
+
+      // Define a threshold for detection based on your testing
+      const threshold = 0.02; // Adjust this based on accuracy tests
+
+      if (eyelidDistance > threshold) {
+        irisDetected = true;
+
+        // Draw eyelid in red
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 3;
+        drawConnectors(ctx, landmarks, FACEMESH_LEFT_EYE, { color: 'red' });
+        drawConnectors(ctx, landmarks, FACEMESH_RIGHT_EYE, { color: 'red' });
+
+        // Draw outer and inner iris circles
+        ctx.strokeStyle = 'green';
+        ctx.lineWidth = 3;
+        this.drawIris(ctx, landmarks, [468, 469, 470, 471], 'green'); // Outer iris
+        this.drawIris(ctx, landmarks, [473, 474, 475, 476], 'blue'); // Inner iris
+      }
     }
-  
-    // Display FPS on the canvas
+
+    // Display FPS and iris detection status on the canvas
     ctx.font = '20px Arial';
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = 'green';
     ctx.fillText(`FPS: ${this.fps}`, 10, 30);
+    ctx.fillText(irisDetected ? 'Iris Detected' : "Can't Detect Iris", 10, 60);
   }
-  
+
+  // Calculate the distance between the eyelid and iris to determine eye openness
+  private calculateEyelidDistance(landmarks: any): number {
+    const leftEyeTop = landmarks[159]; // Top landmark of left eye
+    const leftEyeBottom = landmarks[145]; // Bottom landmark of left eye
+
+    const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
+    return eyeDistance;
+  }
+
   private drawIris(
     ctx: CanvasRenderingContext2D,
     landmarks: any,
@@ -149,32 +171,36 @@ export class MediapipeIrisComponent implements AfterViewInit {
   ): void {
     let xSum = 0;
     let ySum = 0;
-  
+
     irisIndices.forEach((index) => {
       xSum += landmarks[index].x * this.canvasElement.nativeElement.width;
       ySum += landmarks[index].y * this.canvasElement.nativeElement.height;
     });
-  
+
     const centerX = xSum / irisIndices.length;
     const centerY = ySum / irisIndices.length;
-  
+
     const radius = this.calculateRadius(ctx, landmarks, irisIndices);
-  
+
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
     ctx.stroke();
   }
-  
+
   private calculateRadius(
     ctx: CanvasRenderingContext2D,
     landmarks: any,
     indices: number[]
   ): number {
-    const centerX = landmarks[indices[0]].x * this.canvasElement.nativeElement.width;
-    const centerY = landmarks[indices[0]].y * this.canvasElement.nativeElement.height;
-    const radius = Math.abs(centerX - landmarks[indices[1]].x * this.canvasElement.nativeElement.width);
-  
+    const centerX =
+      landmarks[indices[0]].x * this.canvasElement.nativeElement.width;
+    const centerY =
+      landmarks[indices[0]].y * this.canvasElement.nativeElement.height;
+    const radius = Math.abs(
+      centerX - landmarks[indices[1]].x * this.canvasElement.nativeElement.width
+    );
+
     return radius;
   }
-}  
+}
