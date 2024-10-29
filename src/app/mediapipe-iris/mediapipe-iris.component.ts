@@ -1,3 +1,4 @@
+import { GlassesModelService } from './../glasses-model.service';
 import { Component, ElementRef, AfterViewInit, ViewChild } from '@angular/core';
 import {
   FaceMesh,
@@ -11,7 +12,7 @@ import { drawConnectors } from '@mediapipe/drawing_utils';
   templateUrl: './mediapipe-iris.component.html',
   styleUrls: ['./mediapipe-iris.component.css'],
 })
-export class MediapipeIrisComponent implements AfterViewInit {
+export class MediapipeIrisComponent {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
 
@@ -21,11 +22,15 @@ export class MediapipeIrisComponent implements AfterViewInit {
   private stream: MediaStream | null = null;
   public cameraActive: boolean = false;
   private lastFrameTime: number = 0;
+  private lastPredictionTime: number = 0; // New property for prediction timing
   public fps: number = 0; // FPS to display
 
-  ngAfterViewInit(): void {
-    this.setupFaceMesh();
-    this.getCameras();
+  constructor(private GlassesModelService: GlassesModelService) {}
+
+  async ngOnInit() {
+    await this.getCameras();
+    await this.GlassesModelService.loadModel();
+    this.setupFaceMesh(); // Add this line
   }
 
   private setupFaceMesh(): void {
@@ -107,7 +112,7 @@ export class MediapipeIrisComponent implements AfterViewInit {
     loop();
   }
 
-  private onResults(results: any): void {
+  private async onResults(results: any): Promise<void> {
     const canvas = this.canvasElement.nativeElement;
     const video = this.videoElement.nativeElement;
 
@@ -120,6 +125,7 @@ export class MediapipeIrisComponent implements AfterViewInit {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     let irisDetected = false;
+    let glassesDetected = '';
 
     if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
       const landmarks = results.multiFaceLandmarks[0];
@@ -144,14 +150,81 @@ export class MediapipeIrisComponent implements AfterViewInit {
         ctx.lineWidth = 3;
         this.drawIris(ctx, landmarks, [468, 469, 470, 471], 'green'); // Outer iris
         this.drawIris(ctx, landmarks, [473, 474, 475, 476], 'blue'); // Inner iris
+        // Display FPS, iris detection status, and glasses detection result on the canvas
+        ctx.font = '20px Arial';
+        ctx.fillStyle = 'green';
+        ctx.fillText(`FPS: ${this.fps}`, 10, 30);
+        ctx.fillText(
+          irisDetected ? 'Iris Detected' : "Can't Detect Iris",
+          10,
+          60
+        );
+        ctx.fillText(
+          glassesDetected
+            ? `Detected: ${glassesDetected}`
+            : 'No glasses detected',
+          10,
+          90
+        );
+
+        // Check if one second has passed before making a prediction
+        const currentTime = performance.now();
+        if (currentTime - this.lastPredictionTime > 1000) {
+          try {
+            const frameImage = await this.getCurrentFrame(video); // Await the promise
+            glassesDetected = await this.GlassesModelService.predict(
+              frameImage
+            );
+            this.lastPredictionTime = currentTime; // Update the last prediction time
+          } catch (error) {
+            console.error('Error getting current frame:', error);
+          }
+        }
       }
+      // Display FPS, iris detection status, and glasses detection result on the canvas
+      ctx.font = '20px Arial';
+      ctx.fillStyle = 'green';
+      ctx.fillText(`FPS: ${this.fps}`, 10, 30);
+      ctx.fillText(
+        irisDetected ? 'Iris Detected' : "Can't Detect Iris",
+        10,
+        60
+      );
+      ctx.fillText(
+        glassesDetected
+          ? `Detected: ${glassesDetected}`
+          : 'No glasses detected',
+        10,
+        90
+      );
+    }
+  }
+
+  // Helper function to get the current frame from the video
+  private async getCurrentFrame(
+    video: HTMLVideoElement
+  ): Promise<HTMLImageElement> {
+    const canvas = document.createElement('canvas');
+
+    // Ensure video has valid dimensions
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      throw new Error('Video dimensions are invalid.');
     }
 
-    // Display FPS and iris detection status on the canvas
-    ctx.font = '20px Arial';
-    ctx.fillStyle = 'green';
-    ctx.fillText(`FPS: ${this.fps}`, 10, 30);
-    ctx.fillText(irisDetected ? 'Iris Detected' : "Can't Detect Iris", 10, 60);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const img = new Image();
+    img.src = canvas.toDataURL();
+
+    // Return a promise that resolves when the image is fully loaded
+    return new Promise((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Image loading failed.'));
+    });
   }
 
   // Calculate the distance between the eyelid and iris to determine eye openness
