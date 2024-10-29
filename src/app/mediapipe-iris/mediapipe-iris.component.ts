@@ -150,22 +150,11 @@ export class MediapipeIrisComponent {
         ctx.lineWidth = 3;
         this.drawIris(ctx, landmarks, [468, 469, 470, 471], 'green'); // Outer iris
         this.drawIris(ctx, landmarks, [473, 474, 475, 476], 'blue'); // Inner iris
-        // Display FPS, iris detection status, and glasses detection result on the canvas
+
+        // Display FPS and iris detection status on the canvas
         ctx.font = '20px Arial';
         ctx.fillStyle = 'green';
         ctx.fillText(`FPS: ${this.fps}`, 10, 30);
-        ctx.fillText(
-          irisDetected ? 'Iris Detected' : "Can't Detect Iris",
-          10,
-          60
-        );
-        ctx.fillText(
-          glassesDetected
-            ? `Detected: ${glassesDetected}`
-            : 'No glasses detected',
-          10,
-          90
-        );
 
         // Check if one second has passed before making a prediction
         const currentTime = performance.now();
@@ -175,29 +164,20 @@ export class MediapipeIrisComponent {
             glassesDetected = await this.GlassesModelService.predict(
               frameImage
             );
-            this.lastPredictionTime = currentTime; // Update the last prediction time
+            console.log(glassesDetected); // Log the prediction
+            this.lastPredictionTime = currentTime;
           } catch (error) {
             console.error('Error getting current frame:', error);
           }
         }
       }
-      // Display FPS, iris detection status, and glasses detection result on the canvas
-      ctx.font = '20px Arial';
-      ctx.fillStyle = 'green';
-      ctx.fillText(`FPS: ${this.fps}`, 10, 30);
-      ctx.fillText(
-        irisDetected ? 'Iris Detected' : "Can't Detect Iris",
-        10,
-        60
-      );
-      ctx.fillText(
-        glassesDetected
-          ? `Detected: ${glassesDetected}`
-          : 'No glasses detected',
-        10,
-        90
-      );
     }
+
+    // Display FPS, iris detection status, and glasses detection result on the canvas
+    ctx.font = '20px Arial';
+    ctx.fillStyle = 'green';
+    ctx.fillText(`FPS: ${this.fps}`, 10, 30);
+    ctx.fillText(irisDetected ? 'Iris Detected' : "Can't Detect Iris", 10, 60);
   }
 
   // Helper function to get the current frame from the video
