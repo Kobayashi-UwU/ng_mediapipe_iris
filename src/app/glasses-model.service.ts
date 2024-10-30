@@ -36,7 +36,6 @@ export class GlassesModelService {
           );
         },
       });
-
       console.log('Model loaded:', this.model.net);
 
       // Warm up the model
@@ -45,6 +44,11 @@ export class GlassesModelService {
       tf.dispose(dummyInput);
 
       console.log('Model executed successfully');
+      // Update the HTML with the result
+      const loadmodelstatusElement = document.getElementById('load_model');
+      if (loadmodelstatusElement) {
+        loadmodelstatusElement.innerText = `Model load Status : Done`;
+      }
     } catch (error) {
       console.error('Error loading model:', error);
     }
